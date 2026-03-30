@@ -318,6 +318,37 @@ app.put('/api/admin/produtos/:id', upload.single('imagem'), async (req, res) => 
     }
 });
 
+// Atualizar apenas imagem do produto
+app.post('/api/admin/produtos/:id/imagem', upload.single('imagem'), async (req, res) => {
+    try {
+        const id = req.params.id;
+        const produto = await dbGet('SELECT * FROM produtos WHERE id = ?', [id]);
+
+        if (!produto) {
+            return res.status(404).json({ erro: 'Produto não encontrado' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ erro: 'Imagem é obrigatória' });
+        }
+
+        const novaImagem = `/uploads/${req.file.filename}`;
+
+        // Remove imagem antiga de upload para evitar lixo em disco.
+        if (produto.imagem && produto.imagem.startsWith('/uploads/')) {
+            const caminhoImagemAntiga = path.join(__dirname, 'public', produto.imagem);
+            if (fs.existsSync(caminhoImagemAntiga)) {
+                fs.unlinkSync(caminhoImagemAntiga);
+            }
+        }
+
+        await dbRun('UPDATE produtos SET imagem = ? WHERE id = ?', [novaImagem, id]);
+        res.json({ sucesso: true, imagem: novaImagem });
+    } catch (err) {
+        res.status(500).json({ erro: err.message });
+    }
+});
+
 // Deletar produto
 app.delete('/api/admin/produtos/:id', async (req, res) => {
     try {

@@ -142,37 +142,68 @@ function salvarProduto(event) {
     const preco = document.getElementById('preco-produto').value;
     const editId = document.getElementById('form-produto').dataset.editId;
 
-    const formData = new FormData();
-    formData.append('nome', nome);
-    formData.append('descricao', descricao);
-    formData.append('preco', preco);
-    
     const imagem = document.getElementById('imagem-produto').files[0];
-    if (imagem) {
-        formData.append('imagem', imagem);
+
+    // Criação sempre via multipart (com ou sem imagem)
+    if (!editId) {
+        const formData = new FormData();
+        formData.append('nome', nome);
+        formData.append('descricao', descricao);
+        formData.append('preco', preco);
+        if (imagem) {
+            formData.append('imagem', imagem);
+        }
+
+        fetch('/api/admin/produtos', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.sucesso) {
+                alert('Produto adicionado!');
+                cancelarFormProduto();
+                carregarProdutos();
+            } else {
+                alert('Erro: ' + data.erro);
+            }
+        })
+        .catch(err => {
+            console.error('Erro:', err);
+            alert('Erro ao salvar produto');
+        });
+        return;
     }
 
-    const url = editId ? `/api/admin/produtos/${editId}` : '/api/admin/produtos';
-    const method = editId ? 'PUT' : 'POST';
-
-    // Edição sem imagem usa JSON para evitar falhas de multipart em alguns ambientes.
-    const usarJson = Boolean(editId && !imagem);
-    const opcoesFetch = usarJson
-        ? {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, descricao, preco })
-        }
-        : {
-            method: method,
-            body: formData
-        };
-
-    fetch(url, opcoesFetch)
+    // Edição: primeiro atualiza dados de texto
+    fetch(`/api/admin/produtos/${editId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, descricao, preco })
+    })
     .then(res => res.json())
     .then(data => {
+        if (!data.sucesso) {
+            throw new Error(data.erro || 'Erro ao atualizar produto');
+        }
+
+        // Se não escolheu nova imagem, finaliza aqui.
+        if (!imagem) {
+            return { sucesso: true };
+        }
+
+        // Se escolheu nova imagem, faz upload dedicado.
+        const formDataImagem = new FormData();
+        formDataImagem.append('imagem', imagem);
+
+        return fetch(`/api/admin/produtos/${editId}/imagem`, {
+            method: 'POST',
+            body: formDataImagem
+        }).then(res => res.json());
+    })
+    .then(data => {
         if (data.sucesso) {
-            alert(editId ? 'Produto atualizado!' : 'Produto adicionado!');
+            alert('Produto atualizado!');
             cancelarFormProduto();
             carregarProdutos();
         } else {
