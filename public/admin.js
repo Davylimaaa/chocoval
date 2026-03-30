@@ -100,24 +100,38 @@ function cancelarFormProduto() {
 function salvarProduto(event) {
     event.preventDefault();
 
+    const nome = document.getElementById('nome-produto').value.trim();
+    const descricao = document.getElementById('descricao-produto').value.trim();
+    const preco = document.getElementById('preco-produto').value;
+    const editId = document.getElementById('form-produto').dataset.editId;
+
     const formData = new FormData();
-    formData.append('nome', document.getElementById('nome-produto').value);
-    formData.append('descricao', document.getElementById('descricao-produto').value);
-    formData.append('preco', document.getElementById('preco-produto').value);
+    formData.append('nome', nome);
+    formData.append('descricao', descricao);
+    formData.append('preco', preco);
     
     const imagem = document.getElementById('imagem-produto').files[0];
     if (imagem) {
         formData.append('imagem', imagem);
     }
 
-    const editId = document.getElementById('form-produto').dataset.editId;
     const url = editId ? `/api/admin/produtos/${editId}` : '/api/admin/produtos';
     const method = editId ? 'PUT' : 'POST';
 
-    fetch(url, {
-        method: method,
-        body: formData
-    })
+    // Edição sem imagem usa JSON para evitar falhas de multipart em alguns ambientes.
+    const usarJson = Boolean(editId && !imagem);
+    const opcoesFetch = usarJson
+        ? {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, descricao, preco })
+        }
+        : {
+            method: method,
+            body: formData
+        };
+
+    fetch(url, opcoesFetch)
     .then(res => res.json())
     .then(data => {
         if (data.sucesso) {
@@ -135,9 +149,13 @@ function salvarProduto(event) {
 }
 
 function editarProduto(id) {
-    fetch(`/api/produtos/${id}`)
+    fetch(`/api/admin/produtos/${id}`)
         .then(res => res.json())
         .then(produto => {
+            if (!produto || produto.erro) {
+                alert('Não foi possível carregar este produto para edição.');
+                return;
+            }
             document.getElementById('nome-produto').value = produto.nome;
             document.getElementById('descricao-produto').value = produto.descricao;
             document.getElementById('preco-produto').value = produto.preco;

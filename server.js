@@ -259,6 +259,19 @@ app.get('/api/admin/produtos', async (req, res) => {
     }
 });
 
+// Obter um produto (admin)
+app.get('/api/admin/produtos/:id', async (req, res) => {
+    try {
+        const produto = await dbGet('SELECT * FROM produtos WHERE id = ?', [req.params.id]);
+        if (!produto) {
+            return res.status(404).json({ erro: 'Produto não encontrado' });
+        }
+        res.json(produto);
+    } catch (err) {
+        res.status(500).json({ erro: err.message });
+    }
+});
+
 // Criar produto
 app.post('/api/admin/produtos', upload.single('imagem'), async (req, res) => {
     try {
