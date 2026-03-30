@@ -276,6 +276,7 @@ function deletarRecheio(id) {
 
 // ===== PEDIDOS =====
 let todosPedidos = [];
+const whatsappLoja = '5511987711776';
 
 function carregarPedidos() {
     fetch('/api/admin/pedidos')
@@ -286,6 +287,21 @@ function carregarPedidos() {
             atualizarEstatisticasPedidos(pedidos);
         })
         .catch(err => console.error('Erro:', err));
+}
+
+function normalizarStatusPedido(status) {
+    if (status === 'pendente') return 'fazendo';
+    if (status === 'enviado') return 'entregue';
+    return status || 'fazendo';
+}
+
+function textoStatusPedido(status) {
+    const mapa = {
+        fazendo: 'FAZENDO',
+        confirmado: 'CONFIRMADO',
+        entregue: 'ENTREGUE'
+    };
+    return mapa[status] || (status || 'FAZENDO').toUpperCase();
 }
 
 function exibirPedidos(pedidos) {
@@ -299,6 +315,7 @@ function exibirPedidos(pedidos) {
 
     pedidos.forEach(pedido => {
         const itensList = pedido.itens.map(item => `${item.nome} - R$ ${item.preco.toFixed(2)}`).join('<br>');
+        const statusAtual = normalizarStatusPedido(pedido.status);
         
         const card = document.createElement('div');
         card.className = 'pedido-card';
@@ -312,12 +329,12 @@ function exibirPedidos(pedidos) {
                     <p style="font-size: 0.8rem; color: #999;">📅 ${new Date(pedido.criado_em).toLocaleString('pt-BR')}</p>
                 </div>
                 <div class="pedido-status">
-                    <span class="status-badge status-${pedido.status}">${pedido.status.toUpperCase()}</span>
-                    <select onchange="atualizarStatusPedido(${pedido.id}, this.value)" style="padding: 0.5rem; border-radius: 5px; border: 2px solid var(--rosa-pastel);">
-                        <option value="pendente" ${pedido.status === 'pendente' ? 'selected' : ''}>⏳ Pendente</option>
-                        <option value="confirmado" ${pedido.status === 'confirmado' ? 'selected' : ''}>✅ Confirmado</option>
-                        <option value="enviado" ${pedido.status === 'enviado' ? 'selected' : ''}>📦 Enviado</option>
-                    </select>
+                    <span class="status-badge status-${statusAtual}">${textoStatusPedido(statusAtual)}</span>
+                    <div class="status-actions">
+                        <button class="status-btn ${statusAtual === 'fazendo' ? 'ativo' : ''}" onclick="atualizarStatusPedido(${pedido.id}, 'fazendo')">👩‍🍳 Fazendo</button>
+                        <button class="status-btn ${statusAtual === 'confirmado' ? 'ativo' : ''}" onclick="atualizarStatusPedido(${pedido.id}, 'confirmado')">✅ Confirmado</button>
+                        <button class="status-btn ${statusAtual === 'entregue' ? 'ativo' : ''}" onclick="atualizarStatusPedido(${pedido.id}, 'entregue')">📦 Entregue</button>
+                    </div>
                 </div>
             </div>
             <div class="pedido-itens">
@@ -339,6 +356,13 @@ function atualizarStatusPedido(id, novoStatus) {
     .then(res => res.json())
     .then(data => {
         if (data.sucesso) {
+            if (novoStatus === 'confirmado') {
+                const pedido = todosPedidos.find(p => p.id === id);
+                if (pedido) {
+                    const urlWhatsApp = montarLinkWhatsAppPedido(pedido);
+                    window.open(urlWhatsApp, '_blank');
+                }
+            }
             carregarPedidos();
         } else {
             alert('Erro ao atualizar pedido');
@@ -350,13 +374,31 @@ function atualizarStatusPedido(id, novoStatus) {
     });
 }
 
+function montarLinkWhatsAppPedido(pedido) {
+    const itens = (pedido.itens || []).map((item, index) => {
+        const linhaBase = `${index + 1}. ${item.nome} - R$ ${Number(item.preco).toFixed(2)}`;
+        return item.descricao ? `${linhaBase}\n   - ${item.descricao}` : linhaBase;
+    }).join('\n');
+
+    const mensagem =
+        `🍫 *PEDIDO CONFIRMADO - CHOCOVAL* 🍫\n\n` +
+        `📋 Pedido #${pedido.id}\n` +
+        `👤 Cliente: ${pedido.nome || '-'}\n` +
+        `📧 Email: ${pedido.email || '-'}\n` +
+        `📱 Telefone: ${pedido.telefone || '-'}\n\n` +
+        `🛒 Itens:\n${itens}\n\n` +
+        `💵 Total: R$ ${Number(pedido.total || 0).toFixed(2)}`;
+
+    return `https://wa.me/${whatsappLoja}?text=${encodeURIComponent(mensagem)}`;
+}
+
 function filtrarPedidos() {
     const filtro = document.getElementById('filtro-status').value;
     
     if (filtro === '') {
         exibirPedidos(todosPedidos);
     } else {
-        const pedidosFiltrados = todosPedidos.filter(p => p.status === filtro);
+        const pedidosFiltrados = todosPedidos.filter(p => normalizarStatusPedido(p.status) === filtro);
         exibirPedidos(pedidosFiltrados);
     }
 }

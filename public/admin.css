@@ -491,8 +491,9 @@ body {
 
 .pedido-status {
     display: flex;
-    gap: 1rem;
-    align-items: center;
+    gap: 0.8rem;
+    align-items: flex-end;
+    flex-direction: column;
 }
 
 .status-badge {
@@ -503,7 +504,7 @@ body {
     text-align: center;
 }
 
-.status-pendente {
+.status-fazendo {
     background-color: #fff3cd;
     color: #856404;
 }
@@ -513,9 +514,39 @@ body {
     color: #155724;
 }
 
-.status-enviado {
+.status-entregue {
     background-color: #d1ecf1;
     color: #0c5460;
+}
+
+.status-actions {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.status-btn {
+    border: 2px solid var(--rosa-pastel);
+    border-radius: 20px;
+    background: #fff;
+    color: var(--chocolate-escuro);
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-btn:hover {
+    border-color: var(--ouro);
+    transform: translateY(-1px);
+}
+
+.status-btn.ativo {
+    background: linear-gradient(135deg, var(--chocolate-medio), var(--chocolate-escuro));
+    color: #fff;
+    border-color: var(--chocolate-escuro);
 }
 
 .pedido-itens {

@@ -423,27 +423,7 @@ function finalizarPedido(event) {
         total += taxaUber;
     }
     
-    // Montar mensagem para WhatsApp
-    let mensagem = '🍫 *PEDIDO CHOCOVAL* 🍫\n\n';
-    
-    carrinho.forEach((item, index) => {
-        mensagem += `${index + 1}. *${item.nome}* - R$ ${item.preco.toFixed(2)}\n`;
-        if (item.descricao) {
-            mensagem += `   └─ ${item.descricao}\n`;
-        }
-    });
-    
     let totalSemTaxa = carrinho.reduce((sum, item) => sum + item.preco, 0);
-    mensagem += `\n💰 Subtotal: R$ ${totalSemTaxa.toFixed(2)}\n`;
-    
-    if (taxaUber > 0) {
-        mensagem += `🚗 Taxa Uber Moto: +R$ ${taxaUber.toFixed(2)}\n`;
-    }
-    
-    mensagem += `\n*💵 TOTAL: R$ ${total.toFixed(2)}*\n`;
-    mensagem += `\n👤 *Cliente:* ${nomeCliente}\n`;
-    mensagem += `🚚 *Entrega:* ${tipoEntrega}\n`;
-    mensagem += `\n📅 Última chance de pedidos: 31/03/2026`;
     
     // Salvar pedido no banco de dados
     const pedidoData = {
@@ -466,11 +446,7 @@ function finalizarPedido(event) {
     .then(data => {
         if (data.sucesso) {
             console.log('✅ Pedido salvo no sistema! ID:', data.id);
-            
-            // Abrir WhatsApp
-            const urlWhatsApp = `https://wa.me/${marcaConfig.whatsapp}?text=${encodeURIComponent(mensagem)}`;
-            window.open(urlWhatsApp, '_blank');
-            
+
             // Limpar e mostrar modal de sucesso
             setTimeout(() => {
                 carrinho = [];
@@ -485,8 +461,8 @@ function finalizarPedido(event) {
                 let mensagemSucesso = `✅ Seu pedido foi recebido com sucesso!\n\n`;
                 mensagemSucesso += `📋 ID do Pedido: #${data.id}\n`;
                 mensagemSucesso += `💰 Valor Total: R$ ${total.toFixed(2)}\n\n`;
-                mensagemSucesso += `📱 Verifique seu WhatsApp para confirmar o pedido.\n\n`;
-                mensagemSucesso += `🎁 Você pode acompanhar o status em nosso painel.`;
+                mensagemSucesso += `⏳ Agora vamos analisar seu pedido no painel.\n`;
+                mensagemSucesso += `📱 O WhatsApp só será aberto após aprovação do pedido no admin.`;
                 
                 mostrarModalSucesso(mensagemSucesso);
             }, 500);
