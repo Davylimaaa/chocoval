@@ -46,6 +46,7 @@ function mostrarNotificacao(mensagem, tipo = 'info') {
 document.addEventListener('DOMContentLoaded', () => {
     verificarDataLimite();
     atualizarContadorCarrinho();
+    sincronizarCardsCatalogo();
     
     // Definir data mínima no picker
     const dataInput = document.getElementById('data-entrega');
@@ -54,6 +55,60 @@ document.addEventListener('DOMContentLoaded', () => {
         dataInput.min = hoje;
     }
 });
+
+function renderImagemCard(container, imagem, fallback = '🍫') {
+    if (!container) return;
+    if (imagem && imagem.startsWith('/uploads/')) {
+        container.innerHTML = `<img src="${imagem}" alt="Produto">`;
+    } else {
+        container.textContent = imagem || fallback;
+    }
+}
+
+function sincronizarCardsCatalogo() {
+    fetch('/api/produtos')
+        .then(res => res.json())
+        .then(produtos => {
+            const colher250 = produtos.find(p => p.nome && p.nome.includes('Colher 250g'));
+            const colher500 = produtos.find(p => p.nome && p.nome.includes('Colher 500g'));
+
+            atualizarCardColher('[data-categoria="colher"][data-tamanho="250g"]', colher250, 250);
+            atualizarCardColher('[data-categoria="colher"][data-tamanho="500g"]', colher500, 500);
+        })
+        .catch(() => {
+            // Mantém layout estático em caso de falha de rede.
+        });
+}
+
+function atualizarCardColher(seletor, produto, tamanhoPadrao) {
+    if (!produto) return;
+    const card = document.querySelector(seletor);
+    if (!card) return;
+
+    const imagemEl = card.querySelector('.card-imagem');
+    const tituloEl = card.querySelector('h3');
+    const precoEl = card.querySelector('.preco');
+    const botaoEl = card.querySelector('button');
+
+    renderImagemCard(imagemEl, produto.imagem, '🥄');
+
+    if (tituloEl) {
+        tituloEl.textContent = produto.nome.includes('Ovo de Colher') ? 'Ovo de Colher' : produto.nome;
+    }
+
+    if (precoEl) {
+        precoEl.textContent = `R$ ${Number(produto.preco).toFixed(2).replace('.', ',')}`;
+    }
+
+    if (botaoEl) {
+        botaoEl.setAttribute('onclick', `abrirConfigurador('${produto.nome}', ${Number(produto.preco)})`);
+    }
+
+    card.setAttribute('data-preco', String(Number(produto.preco)));
+    if (!card.getAttribute('data-tamanho')) {
+        card.setAttribute('data-tamanho', `${tamanhoPadrao}g`);
+    }
+}
 
 // ===== VERIFICAR DATA LIMITE =====
 function verificarDataLimite() {
