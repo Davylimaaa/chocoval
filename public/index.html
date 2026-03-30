@@ -367,9 +367,17 @@
             <form onsubmit="adicionarConfigurado(event)">
                 <div class="form-group">
                     <label>💭 Escolha a Base do Chocolate:</label>
-                    <div class="opcoes">
+
+                    <!-- Toggle Simples / Meio a Meio -->
+                    <div class="base-toggle">
+                        <button type="button" class="btn-toggle ativo" id="btn-base-simples" onclick="alternarModoBase('simples')">⬛ Base Simples</button>
+                        <button type="button" class="btn-toggle" id="btn-base-meio" onclick="alternarModoBase('meio')">◑ Meio a Meio</button>
+                    </div>
+
+                    <!-- Base simples (radio) -->
+                    <div id="opcoes-base-simples" class="opcoes">
                         <label class="checkbox-label">
-                            <input type="radio" name="base" value="Ao Leite" required> Ao Leite
+                            <input type="radio" name="base" value="Ao Leite"> Ao Leite
                         </label>
                         <label class="checkbox-label">
                             <input type="radio" name="base" value="Branco"> Branco
@@ -378,52 +386,39 @@
                             <input type="radio" name="base" value="Amargo"> Amargo
                         </label>
                     </div>
+
+                    <!-- Meio a Meio (2 selects) -->
+                    <div id="opcoes-base-meio" style="display:none;">
+                        <p class="dica-meio">Escolha exatamente 2 bases diferentes:</p>
+                        <div class="meio-a-meio-grid">
+                            <div class="meio-lado">
+                                <span class="meio-titulo">Metade 1</span>
+                                <select id="meio-base-1" class="select-meio">
+                                    <option value="">Selecione...</option>
+                                    <option value="Ao Leite">Ao Leite</option>
+                                    <option value="Branco">Branco</option>
+                                    <option value="Amargo">Amargo</option>
+                                </select>
+                            </div>
+                            <div class="meio-divisor">+</div>
+                            <div class="meio-lado">
+                                <span class="meio-titulo">Metade 2</span>
+                                <select id="meio-base-2" class="select-meio">
+                                    <option value="">Selecione...</option>
+                                    <option value="Ao Leite">Ao Leite</option>
+                                    <option value="Branco">Branco</option>
+                                    <option value="Amargo">Amargo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label>🍓 Escolha o(s) Sabor(es): <span id="contador-sabores" style="color: #d4af37; font-weight: bold;">(0/3)</span></label>
                     <p id="aviso-sabores" style="font-size: 0.9em; color: #ff6b6b; display: none;">⚠️ Máximo de 3 sabores permitidos!</p>
-                    <div class="grid-sabores">
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Sensação"> 
-                            <span>Sensação</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Ovomaltine"> 
-                            <span>Ovomaltine</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Maracujá"> 
-                            <span>Maracujá</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Prestígio"> 
-                            <span>Prestígio</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Brigadeiro"> 
-                            <span>Brigadeiro</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Nutella"> 
-                            <span>Nutella</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Ninho"> 
-                            <span>Ninho</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="KitKat"> 
-                            <span>KitKat</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Napolitano"> 
-                            <span>Napolitano</span>
-                        </label>
-                        <label class="sabor-label">
-                            <input type="checkbox" name="sabores" value="Delícia de Uva"> 
-                            <span>🍇 Delícia de Uva</span>
-                        </label>
+                    <div class="grid-sabores" id="grid-sabores">
+                        <!-- Sabores carregados dinamicamente via JS -->
                     </div>
                 </div>
 

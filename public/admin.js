@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     atualizarRelogio();
     setInterval(atualizarRelogio, 1000);
     carregarProdutos();
+    carregarRecheios();
     carregarPedidos();
     atualizarDashboard();
 });
@@ -26,6 +27,8 @@ function mostrarSecao(secao) {
     // Recarregar dados quando mudar de seção
     if (secao === 'produtos') {
         carregarProdutos();
+    } else if (secao === 'recheios') {
+        carregarRecheios();
     } else if (secao === 'pedidos') {
         carregarPedidos();
     } else if (secao === 'dashboard') {
@@ -36,6 +39,7 @@ function mostrarSecao(secao) {
 // ===== DASHBOARD =====
 function atualizarDashboard() {
     carregarProdutos();
+    carregarRecheios();
     carregarPedidos();
     // Os dados são atualizados nas funções correspondentes
 }
@@ -58,16 +62,21 @@ function carregarProdutos() {
 
             produtos.forEach(produto => {
                 const card = document.createElement('div');
-                card.className = 'card-produto-admin';
+                card.className = `card-produto-admin${produto.ativo ? '' : ' pausado'}`;
+                const btnPause = produto.ativo
+                    ? `<button class="btn btn-warning btn-pequeno" onclick="toggleProduto(${produto.id})">⏸ Pausar</button>`
+                    : `<button class="btn btn-success btn-pequeno" onclick="toggleProduto(${produto.id})">▶ Reativar</button>`;
                 card.innerHTML = `
                     <div class="imagem">
                         ${produto.imagem.startsWith('/uploads/') ? `<img src="${produto.imagem}" alt="${produto.nome}">` : produto.imagem}
                     </div>
+                    ${!produto.ativo ? '<div class="badge-pausado">⏸ Pausado</div>' : ''}
                     <h4>${produto.nome}</h4>
                     <p class="descricao">${produto.descricao || 'Sem descrição'}</p>
                     <p class="preco">R$ ${produto.preco.toFixed(2)}</p>
                     <div class="acoes">
                         <button class="btn btn-primary btn-pequeno" onclick="editarProduto(${produto.id})">✏️ Editar</button>
+                        ${btnPause}
                         <button class="btn btn-danger btn-pequeno" onclick="deletarProduto(${produto.id})">🗑️ Deletar</button>
                     </div>
                 `;
@@ -160,6 +169,109 @@ function deletarProduto(id) {
         console.error('Erro:', err);
         alert('Erro ao deletar produto');
     });
+}
+
+function toggleProduto(id) {
+    fetch(`/api/admin/produtos/${id}/toggle`, { method: 'PUT' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.sucesso) {
+                carregarProdutos();
+            } else {
+                alert('Erro ao alterar produto');
+            }
+        })
+        .catch(err => console.error('Erro:', err));
+}
+
+// ===== RECHEIOS =====
+function carregarRecheios() {
+    fetch('/api/admin/recheios')
+        .then(res => res.json())
+        .then(recheios => {
+            const lista = document.getElementById('lista-recheios');
+            if (!lista) return;
+            lista.innerHTML = '';
+
+            if (recheios.length === 0) {
+                lista.innerHTML = '<p style="text-align:center;color:#999;">Nenhum recheio cadastrado</p>';
+                return;
+            }
+
+            recheios.forEach(recheio => {
+                const card = document.createElement('div');
+                card.className = `card-recheio${recheio.ativo ? '' : ' pausado'}`;
+                const btnToggle = recheio.ativo
+                    ? `<button class="btn btn-warning btn-pequeno" onclick="toggleRecheio(${recheio.id})">⏸ Pausar</button>`
+                    : `<button class="btn btn-success btn-pequeno" onclick="toggleRecheio(${recheio.id})">▶ Reativar</button>`;
+                card.innerHTML = `
+                    <div class="recheio-info">
+                        <span class="recheio-nome">${recheio.nome}</span>
+                        ${!recheio.ativo ? '<span class="badge-pausado">⏸ Pausado</span>' : '<span class="badge-ativo">✅ Ativo</span>'}
+                    </div>
+                    <div class="acoes">
+                        ${btnToggle}
+                        <button class="btn btn-danger btn-pequeno" onclick="deletarRecheio(${recheio.id})">🗑️</button>
+                    </div>
+                `;
+                lista.appendChild(card);
+            });
+        })
+        .catch(err => console.error('Erro:', err));
+}
+
+function mostrarFormRecheio() {
+    document.getElementById('form-container-recheio').classList.remove('hidden');
+    document.getElementById('nome-recheio').value = '';
+}
+
+function cancelarFormRecheio() {
+    document.getElementById('form-container-recheio').classList.add('hidden');
+}
+
+function salvarRecheio(event) {
+    event.preventDefault();
+    const nome = document.getElementById('nome-recheio').value.trim();
+    if (!nome) return;
+
+    fetch('/api/admin/recheios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.sucesso) {
+            cancelarFormRecheio();
+            carregarRecheios();
+        } else {
+            alert('Erro: ' + data.erro);
+        }
+    })
+    .catch(err => console.error('Erro:', err));
+}
+
+function toggleRecheio(id) {
+    fetch(`/api/admin/recheios/${id}/toggle`, { method: 'PUT' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.sucesso) {
+                carregarRecheios();
+            } else {
+                alert('Erro ao alterar recheio');
+            }
+        })
+        .catch(err => console.error('Erro:', err));
+}
+
+function deletarRecheio(id) {
+    if (!confirm('Deletar este recheio?')) return;
+    fetch(`/api/admin/recheios/${id}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.sucesso) carregarRecheios();
+        })
+        .catch(err => console.error('Erro:', err));
 }
 
 // ===== PEDIDOS =====

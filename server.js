@@ -111,6 +111,29 @@ function inicializarDB() {
             )
         `);
 
+        // Tabela de recheios
+        db.run(`
+            CREATE TABLE IF NOT EXISTS recheios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                ativo INTEGER DEFAULT 1
+            )
+        `);
+
+        // Inserir recheios padrão se não existirem
+        db.get('SELECT COUNT(*) as count FROM recheios', (err, row) => {
+            if (err) return;
+            if (row.count === 0) {
+                const recheiosDefault = [
+                    'Sensação', 'Ovomaltine', 'Maracujá', 'Prestígio', 'Brigadeiro',
+                    'Nutella', 'Ninho', 'KitKat', 'Napolitano', 'Delícia de Uva'
+                ];
+                recheiosDefault.forEach(nome => {
+                    db.run('INSERT INTO recheios (nome) VALUES (?)', [nome]);
+                });
+            }
+        });
+
         // Inserir produtos padrão se não existirem
         db.get('SELECT COUNT(*) as count FROM produtos', (err, row) => {
             if (err) return;
@@ -163,6 +186,16 @@ function inicializarDB() {
 }
 
 // ===== ROTAS API =====
+
+// Obter recheios ativos (storefront)
+app.get('/api/recheios', async (req, res) => {
+    try {
+        const recheios = await dbAll('SELECT * FROM recheios WHERE ativo = 1 ORDER BY id');
+        res.json(recheios);
+    } catch (err) {
+        res.status(500).json({ erro: err.message });
+    }
+});
 
 // Obter todos os produtos ativos
 app.get('/api/produtos', async (req, res) => {
@@ -288,6 +321,66 @@ app.delete('/api/admin/produtos/:id', async (req, res) => {
         }
 
         await dbRun('DELETE FROM produtos WHERE id = ?', [id]);
+        res.json({ sucesso: true });
+    } catch (err) {
+        res.status(500).json({ erro: err.message });
+    }
+});
+
+// Toggle ativo/pausado de produto
+app.put('/api/admin/produtos/:id/toggle', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const produto = await dbGet('SELECT * FROM produtos WHERE id = ?', [id]);
+        if (!produto) return res.status(404).json({ erro: 'Produto não encontrado' });
+        const novoAtivo = produto.ativo ? 0 : 1;
+        await dbRun('UPDATE produtos SET ativo = ? WHERE id = ?', [novoAtivo, id]);
+        res.json({ sucesso: true, ativo: novoAtivo });
+    } catch (err) {
+        res.status(500).json({ erro: err.message });
+    }
+});
+
+// Obter todos os recheios (admin)
+app.get('/api/admin/recheios', async (req, res) => {
+    try {
+        const recheios = await dbAll('SELECT * FROM recheios ORDER BY id');
+        res.json(recheios);
+    } catch (err) {
+        res.status(500).json({ erro: err.message });
+    }
+});
+
+// Adicionar recheio
+app.post('/api/admin/recheios', async (req, res) => {
+    try {
+        const { nome } = req.body;
+        if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório' });
+        const result = await dbRun('INSERT INTO recheios (nome) VALUES (?)', [nome]);
+        res.json({ sucesso: true, id: result.lastID });
+    } catch (err) {
+        res.status(500).json({ erro: err.message });
+    }
+});
+
+// Toggle ativo/pausado de recheio
+app.put('/api/admin/recheios/:id/toggle', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const recheio = await dbGet('SELECT * FROM recheios WHERE id = ?', [id]);
+        if (!recheio) return res.status(404).json({ erro: 'Recheio não encontrado' });
+        const novoAtivo = recheio.ativo ? 0 : 1;
+        await dbRun('UPDATE recheios SET ativo = ? WHERE id = ?', [novoAtivo, id]);
+        res.json({ sucesso: true, ativo: novoAtivo });
+    } catch (err) {
+        res.status(500).json({ erro: err.message });
+    }
+});
+
+// Deletar recheio
+app.delete('/api/admin/recheios/:id', async (req, res) => {
+    try {
+        await dbRun('DELETE FROM recheios WHERE id = ?', [req.params.id]);
         res.json({ sucesso: true });
     } catch (err) {
         res.status(500).json({ erro: err.message });

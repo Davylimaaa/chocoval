@@ -122,6 +122,8 @@ function confirmarData() {
 }
 
 // ===== MODAL CONFIGURADOR =====
+let modoBase = 'simples'; // 'simples' ou 'meio'
+
 function abrirConfigurador(nomeProduto, precoProduto) {
     produtoConfigurandoNome = nomeProduto;
     produtoConfigurandoPreco = precoProduto;
@@ -131,17 +133,62 @@ function abrirConfigurador(nomeProduto, precoProduto) {
     
     // Limpar formulário
     document.querySelectorAll('input[name="base"]').forEach(input => input.checked = false);
-    document.querySelectorAll('input[name="sabores"]').forEach(input => input.checked = false);
+    document.getElementById('meio-base-1').value = '';
+    document.getElementById('meio-base-2').value = '';
     
-    // Resetar contador e aviso de sabores
-    atualizarContadorSabores();
-    
-    // Registrar listener para contar sabores
-    document.querySelectorAll('input[name="sabores"]').forEach(input => {
-        input.addEventListener('change', atualizarContadorSabores);
-    });
+    // Resetar para base simples
+    alternarModoBase('simples');
+
+    // Carregar recheios ativos da API
+    const grid = document.getElementById('grid-sabores');
+    grid.innerHTML = '<p style="color:#999;font-size:0.9rem;">Carregando sabores...</p>';
+    fetch('/api/recheios')
+        .then(res => res.json())
+        .then(recheios => {
+            grid.innerHTML = '';
+            recheios.forEach(r => {
+                const label = document.createElement('label');
+                label.className = 'sabor-label';
+                label.innerHTML = `<input type="checkbox" name="sabores" value="${r.nome}"><span>${r.nome}</span>`;
+                grid.appendChild(label);
+            });
+            // Resetar contador e listeners após popular
+            atualizarContadorSabores();
+            document.querySelectorAll('input[name="sabores"]').forEach(input => {
+                input.addEventListener('change', atualizarContadorSabores);
+            });
+        })
+        .catch(() => {
+            grid.innerHTML = '<p style="color:#f44336;">Erro ao carregar sabores. Tente novamente.</p>';
+        });
     
     document.getElementById('modal-configurador').style.display = 'block';
+}
+
+function alternarModoBase(modo) {
+    modoBase = modo;
+
+    const btnSimples = document.getElementById('btn-base-simples');
+    const btnMeio = document.getElementById('btn-base-meio');
+    const opcoesSimples = document.getElementById('opcoes-base-simples');
+    const opcoesMeio = document.getElementById('opcoes-base-meio');
+
+    if (modo === 'simples') {
+        btnSimples.classList.add('ativo');
+        btnMeio.classList.remove('ativo');
+        opcoesSimples.style.display = 'flex';
+        opcoesMeio.style.display = 'none';
+        // Limpar meio a meio
+        document.getElementById('meio-base-1').value = '';
+        document.getElementById('meio-base-2').value = '';
+    } else {
+        btnMeio.classList.add('ativo');
+        btnSimples.classList.remove('ativo');
+        opcoesSimples.style.display = 'none';
+        opcoesMeio.style.display = 'block';
+        // Desmarcar radios
+        document.querySelectorAll('input[name="base"]').forEach(i => i.checked = false);
+    }
 }
 
 function atualizarContadorSabores() {
@@ -192,6 +239,7 @@ function adicionarConfigurado(event) {
             break;
         }
     }
+    // (meio a meio é resolvido logo abaixo, antes da validação)
     
     // Pegar sabores selecionados
     const saboresElements = document.querySelectorAll('input[name="sabores"]');
@@ -202,6 +250,21 @@ function adicionarConfigurado(event) {
         }
     }
     
+    // Se modo meio a meio, montar base combinada
+    if (modoBase === 'meio') {
+        const m1 = document.getElementById('meio-base-1').value;
+        const m2 = document.getElementById('meio-base-2').value;
+        if (!m1 || !m2) {
+            mostrarNotificacao('Escolha as duas metades do chocolate.', 'warning');
+            return;
+        }
+        if (m1 === m2) {
+            mostrarNotificacao('Escolha bases diferentes para o meio a meio.', 'warning');
+            return;
+        }
+        baseEscolhida = `${m1} + ${m2} (Meio a Meio)`;
+    }
+
     if (!baseEscolhida) {
         mostrarNotificacao('Escolha uma base de chocolate.', 'warning');
         return;
